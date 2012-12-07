@@ -1,9 +1,16 @@
 {-# LANGUAGE BangPatterns, OverloadedStrings #-}
 import Graphics.UI.GLFW
+import Graphics.Rendering.OpenGL (viewport, Position(..), Size(..))
 import Control.Concurrent
 import System.Environment (getArgs)
 import Control.Applicative
 import Control.Monad
+
+import Data.IORef
+
+import Data.Foldable (for_)
+
+import qualified Data.Map.Strict as M
 
 import Video
 import Events
@@ -12,28 +19,24 @@ import Util
 
 main :: IO ()
 main = do
-    (width:height:_) <- map read <$> getArgs
+    config      <- read <$> readFile "config"
+    eventStream <- newChan
+    continue    <- newIORef True
     initialize
     openWindow defaultDisplayOptions
-    setWindowTitle "Terragenesis"
-    setWindowDimensions width height
 
-    eventStream <- newChan
-    world       <- newMVar (undefined :: World)
-    mainThread  <- myThreadId
+    initializeVideo
+    setupEvents eventStream continue
 
-    setKeyCallback           $ \key action -> undefined
-    setMouseButtonCallback   $ \key action -> undefined
-    setMousePositionCallback $ \key action -> undefined
-
-    forkIO $ do
-        handleEvents world eventStream
-        killThread mainThread -- DIE DIE DIE
-
-    forever $ do
-        resetTime
-        render
+    while $ do
+        swapBuffers
         delta <- getTime
         sleep (fps - delta)
+        resetTime
+        render
+        readIORef continue
+
+    writeChan eventStream (Death Graphics)
+
   where fps = 1/60
 

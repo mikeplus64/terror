@@ -1,22 +1,46 @@
+{-# LANGUAGE BangPatterns #-}
+{-# OPTIONS_GHC -funbox-strict-fields #-}
 module Types where
+import Data.Map.Strict                              (Map)
+import Graphics.UI.GLFW                             (Key, MouseButton)
+import Graphics.Rendering.OpenGL.Raw 
+import Foreign
 
-data World
+data Model = Model
+    { modelBuffers :: !(Ptr GLuint)
+    , modelFrames  :: !GLsizei
+    } deriving Show
 
-data Model
+data Config = Config
+    { resolution   :: (Int, Int)
+    , quality      :: Int 
+    , bloom        :: Bool
+    , parallaxMaps :: Bool
+    } deriving (Show, Read)
 
-data Audio
+-- X : 0oX__
+-- Y : 0o_Y_
+-- Z : 0o__Z
+
+data Subsystem
+    = Events
+    | Graphics
+    | Sound
+  deriving (Show, Eq)
 
 data Event
-    = ClientEvent !ClientEvent
-    | WorldEvent  !WorldEvent
+    = KeyPress      !Key         !Bool
+    | MouseMovement !Int         !Int
+    | MouseButton   !MouseButton !Bool
+    | Scroll        !Int
+    | Pause
+    | Quit
+    | Death         !Subsystem
+  deriving (Show, Eq)
 
-data ClientEvent
-    = Pan    !Int !Int
-    | Zoom   !Int
-    | Rotate !Int
-    | ExitRequest
-
-data WorldEvent
-    = MapChange 
-    | GroundViewToggle !Int !Int
+data EngineSetup = EngineSetup
+    { runKey        :: Key         -> IO ()
+    , runMouse      :: MouseButton -> IO ()
+    , graphicConfig :: Config
+    }
 
